@@ -22,7 +22,7 @@ public:
 
   ~BCLDiag() {};
 
-  void startRequest(QUrl url);
+  void startRequest(const QUrl url);
 
 private slots:
   void connectClicked();
@@ -38,6 +38,7 @@ private:
   QPushButton *m_quitButton;
 
   QUrl m_url;
+  QUrl m_originalUrl;
   QNetworkAccessManager m_qnam;
   QNetworkReply *m_reply;
 

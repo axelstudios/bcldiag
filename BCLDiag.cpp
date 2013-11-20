@@ -45,7 +45,7 @@ BCLDiag::BCLDiag(QWidget *parent)
   enableConnectButton();
 }
 
-void BCLDiag::startRequest(QUrl url)
+void BCLDiag::startRequest(const QUrl url)
 {
   QNetworkRequest request = QNetworkRequest(url);
   request.setRawHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
@@ -76,20 +76,19 @@ void BCLDiag::connectClicked()
     if (!validAuthKey) return;
   }
 
-  m_statusLabel->setText("Connecting...");
-
   if (!m_checkingIp) {
     m_statusLabel->setText("Checking IP...");
     m_checkingIp = true;
     m_url = "http://axelstudios.com/ip.php";
   } else {
+    m_statusLabel->setText("Connecting...");
     m_checkingIp = false;
     m_url = QString("http://bcl.nrel.gov/api/search/?api_version=1.1&show_rows=0&oauth_consumer_key=%1").arg(m_key);
+    m_originalUrl = m_url;
   }
 
   m_connectButton->setEnabled(false);
 
-  // schedule the request
   m_httpRequestAborted = false;
   startRequest(m_url);
 }
@@ -126,9 +125,13 @@ void BCLDiag::httpFinished()
 
   QString statusCode = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toString();
   QString errorString = m_reply->errorString();
+  QString url = m_reply->url().toString();
   QString detailedText = QString("BCL Key: \"%1\"\n").arg(m_key);
   if (!m_ip.isEmpty()) {
     detailedText += QString("IP Address: %1\n").arg(m_ip);
+  }
+  if (url != m_originalUrl.toString()) {
+    detailedText += QString("URL Accessed: %1\n").arg(url);
   }
   if (m_reply->error() != QNetworkReply::NoError) {
     detailedText += QString("QNetworkReply Error %1: %2\n").arg(QString::number(m_reply->error()), errorString);
@@ -160,7 +163,7 @@ void BCLDiag::httpFinished()
         m_statusLabel->setText("Network Error: Connection Refused");
         break;
       case QNetworkReply::UnknownContentError:
-        m_statusLabel->setText("Network Error: Unknown Content. Verify the User-Agent header");
+        m_statusLabel->setText("Network Error: Unknown Content.  Verify the User-Agent header");
         break;
       case QNetworkReply::HostNotFoundError:
         if (m_ip.isEmpty()) {
