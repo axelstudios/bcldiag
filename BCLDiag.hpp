@@ -5,13 +5,11 @@
 #include <QNetworkAccessManager>
 #include <QUrl>
 
-QT_BEGIN_NAMESPACE
 class QDialogButtonBox;
 class QLabel;
 class QLineEdit;
 class QPushButton;
 class QNetworkReply;
-QT_END_NAMESPACE
 
 class BCLDiag : public QDialog
 {

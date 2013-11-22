@@ -1,3 +1,5 @@
+#include "BCLDiag.hpp"
+
 #include <QDialogButtonBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -6,8 +8,6 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QPushButton>
-
-#include "BCLDiag.hpp"
 
 BCLDiag::BCLDiag(QWidget *parent)
   : QDialog(parent),
@@ -123,7 +123,7 @@ void BCLDiag::httpFinished()
     return;
   }
 
-  QString statusCode = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toString();
+  QVariant statusCode = m_reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
   QString errorString = m_reply->errorString();
   QString url = m_reply->url().toString();
   QString detailedText = QString("BCL Key: \"%1\"\n").arg(m_key);
@@ -136,13 +136,11 @@ void BCLDiag::httpFinished()
   if (m_reply->error() != QNetworkReply::NoError) {
     detailedText += QString("QNetworkReply Error %1: %2\n").arg(QString::number(m_reply->error()), errorString);
   }
-  detailedText += QString("HTTP Status: %1\n\n").arg(!statusCode.isEmpty() ? statusCode : "N/A");
+  detailedText += QString("HTTP Status: %1\n\n").arg(!statusCode.isNull() ? statusCode.toString() + " " + m_reply->attribute(QNetworkRequest::HttpReasonPhraseAttribute).toString() : "N/A");
   if (m_reply->rawHeaderList().size()) {
     detailedText += "Response Headers:\n";
-    for (int i=0; i<m_reply->rawHeaderList().size(); ++i) {
-      detailedText += QString("%1: %2\n").arg(
-          QString(m_reply->rawHeaderList()[i]),
-          QString(m_reply->rawHeader(m_reply->rawHeaderList()[i])));
+    Q_FOREACH(QNetworkReply::RawHeaderPair header, m_reply->rawHeaderPairs()) {
+      detailedText += QString("%1: %2\n").arg(QString(header.first), QString(header.second));
     }
   } else {
     detailedText += "Response Headers: N/A\n";
@@ -180,15 +178,14 @@ void BCLDiag::httpFinished()
         }
         break;
       default:
-        if (!statusCode.isEmpty()) {
-          m_statusLabel->setText(QString("Network Error: %1 - %2").arg(statusCode, errorString));
-        } else {
-          m_statusLabel->setText(QString("Network Error: %1").arg(errorString));
-        }
+        m_statusLabel->setText(QString("Network Error: %1%2").arg(!statusCode.isNull() ? statusCode.toString() + " - " : "", errorString));
     }
 
     QMessageBox msgBox(QMessageBox::Warning, "Connection Failed", QString("Connection failed: %1.").arg(m_statusLabel->text()), QMessageBox::NoButton, this);
     msgBox.setDetailedText(detailedText);
+    QSpacerItem* horizontalSpacer = new QSpacerItem(478, 0, QSizePolicy::Minimum, QSizePolicy::Expanding);
+    QGridLayout* layout = (QGridLayout*)msgBox.layout();
+    layout->addItem(horizontalSpacer, layout->rowCount(), 0, 1, layout->columnCount());
     msgBox.exec();
 
     enableConnectButton();
